@@ -10,14 +10,6 @@ import "channels"
 import "bootstrap"
 import "./src/application.scss"
 
-(function () {
-  'use strict'
-
-  document.querySelector('#navbarSideCollapse').addEventListener('click', function () {
-    document.querySelector('.offcanvas-collapse').classList.toggle('open')
-  })
-})()
-
 Rails.start()
 Turbolinks.start()
 ActiveStorage.start()

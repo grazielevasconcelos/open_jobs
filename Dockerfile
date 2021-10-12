@@ -1,19 +1,36 @@
-FROM ruby:2.7.1
+FROM ruby:2.7.1-alpine
 
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg -o /root/yarn-pubkey.gpg && apt-key add /root/yarn-pubkey.gpg
-RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list
-RUN apt-get update -qq && apt-get install -y --no-install-recommends nodejs yarn postgresql-client
+ENV APP_PATH /var/app
+ENV BUNDLE_VERSION 2.1.4
+ENV BUNDLE_PATH /usr/local/bundle/gems
+ENV TMP_PATH /tmp/
+ENV RAILS_LOG_TO_STDOUT true
+ENV RAILS_PORT 3000
 
-WORKDIR /app
-COPY Gemfile /app/Gemfile
-COPY Gemfile.lock /app/Gemfile.lock
-RUN bundle install
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Add a script to be executed every time the container starts.
-COPY entrypoint.sh /usr/bin/
-RUN chmod +x /usr/bin/entrypoint.sh
-ENTRYPOINT ["entrypoint.sh"]
-EXPOSE 3000
+RUN apk -U add --no-cache \
+    build-base \
+    git \
+    postgresql-dev \
+    postgresql-client \
+    libxml2-dev \
+    libxslt-dev \
+    sqlite-dev \
+    nodejs \
+    yarn \
+    imagemagick \
+    tzdata \
+    less \
+    && rm -rf /var/cache/apk/* \
+    && mkdir -p $APP_PATH
 
-# Configure the main process to run when running the image
-CMD ["rails", "server", "-b", "0.0.0.0"]
+RUN gem install bundler --version "$BUNDLE_VERSION" \
+    && rm -rf $GEM_HOME/cache/*
+
+WORKDIR $APP_PATH
+
+EXPOSE $RAILS_PORT
+
+ENTRYPOINT [ "bundle", "exec" ]

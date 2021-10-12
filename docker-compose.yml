@@ -1,20 +1,66 @@
 version: "3.9"
+
+volumes:
+  db_data:
+  gem_cache:
+  shared_data:
+
 services:
   db:
     image: postgres:13.4
     volumes:
-      - ./tmp/db:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
+      - shared_data:/var/shared
     environment:
-      POSTGRES_PASSWORD: mysecretpassword  
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+
+  mailcatcher:
+    image: schickling/mailcatcher
+    ports:
+      - "1025:1025"
+      - "1080:1080"
+
   web:
     build: .
-    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
-    environment:
-      - PGHOST=db
-      - PGUSER=postgres
     volumes:
-      - .:/app
+      - .:/var/app
+      - shared_data:/var/shared
+      - gem_cache:/usr/local/bundle/gems
     ports:
       - "3000:3000"
+    stdin_open: true
+    tty: true
+    env_file: .env
+    entrypoint: entrypoint.sh
+    command: ['rails', 'server', '-p', '3000', '-b', '0.0.0.0']
+    environment:
+      RAILS_ENV: development
+      DATABASE_NAME: open_jobs_development
     depends_on:
       - db
+      - mailcatcher
+
+  test:
+    build: .
+    volumes:
+      - .:/var/app
+      - shared_data:/var/shared
+      - gem_cache:/usr/local/bundle/gems
+    ports:
+      - "3001:3000"
+    stdin_open: true
+    tty: true
+    env_file: .env
+    entrypoint: entrypoint.sh
+    command: ['rspec', '-fdoc']
+    environment:
+      RAILS_ENV: test
+      DATABASE_NAME: open_jobs_test
+    depends_on:
+      - db
+      - mailcatcher
+
+    # environment:
+    #   - PGHOST=db
+    #   - PGUSER=postgres
