@@ -2,7 +2,7 @@
 
 set -e
 
-wait 20s
+wait 20
 
 echo "Environment: $RAILS_ENV"
 
